@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
 #Filen som starter på 10211 er bak i tid
@@ -20,24 +21,19 @@ datafuture["alder"] = datafuture["alder"].str.split("å", expand = True).loc[:,0
 #Jeg bruker data.pivot() fra pandas og bestemmer at "år" er index (xverdier). Values (yverdier) er enten folkemengde eller Personer(forskjell i filene)
 #Columns har en verdi(folkemengde) som plusses sammen i det tilsvarende året. 
 datafuture2 = datafuture.pivot_table(index="år", values="Folkemengde", columns="alder")
+#I fremtid filen var 2022 og 2023 lagt til så jeg droppet dem
+datafuture2.drop([2022, 2023])
+#Legger sammen grafene
+dataMerged = pd.concat([data2, datafuture2])
 
-#Rolling gjør at 10 år blir printet ut om gangen og ikke vært år for seg selv. 
-data3 = data2.rolling(10, win_type='boxcar', axis=1, closed='left', center=False).sum().iloc[:, ::10]
-datafuture3 = datafuture2.rolling(10, win_type='boxcar', axis=1, closed='left', center=False).sum().iloc[:, ::10]
+#Cut etablerer intevallene og right false slik at vi fr til og med første (0) og til siste verdi. Slik at vi fr med uendelig på slutten
+age_intervals = pd.cut(dataMerged.axes[1], [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, np.inf], right=False)
+#Her summerer jeg alle aldersgruene slik at andas kan plotte det ut
+dataMerged = dataMerged.groupby(by=age_intervals, axis=1).sum()
 
-#Lager en figur og et subplot
-fig, ax = plt.subplots(figsize=(12, 6))
+#plotter omrde under grafen
+dataMerged.plot.area()
+plt.ylabel('Populasjon')
+plt.legend(title='Aldersgruppe')
 
-#plotter det første område under grafen (Første fil)
-data3.plot.area(ax=ax)
-ax.set_title("Befolknings vekst")
-
-#Ploter det andre område under grafen (Andre fil)
-datafuture3.plot.area(ax=ax)
-
-#Setter navn på aksene
-ax.set_xlabel("År")
-ax.set_ylabel("Befolkning")
-
-#Viser grafen
 plt.show()
